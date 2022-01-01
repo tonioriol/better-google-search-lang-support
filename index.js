@@ -1,56 +1,36 @@
 // ==UserScript==
-// @name     Add language filter In Google search for each language defined in google search settings
-// @description:en It takes the languages you have configured in your google search settings and adds them as a separated filter for each instead of adding just one filter for all.
-// @version  2
-// @grant    none
-// @include     *.google.*
+// @name Better Google Search Language Support
+// @description:en Add language filter in Google search for each language defined in google search settings. Takes the languages you have configured in your Google search settings and adds them as separate items for each instead of adding just one filter for all defined languages.
+// @version 2.0.1
+// @grant none
+// @include *.google.*
 // ==/UserScript==
-(function() {
+(function () {
   function addNewLangFilters() {
-    let langItems = document.querySelectorAll('ul.hdtbU')[0].querySelectorAll('.hdtbItm')
+    const langMenuItems = [...document.getElementsByTagName('g-menu')].find(x => [...x.children].find(y => y.innerHTML.includes('tbs=lr:lang'))).children
+    const search = new URLSearchParams(langMenuItems[1].firstChild.firstChild.attributes.href.value.replace('/search', ''))
+    const query = search.get('q')
+    const languages = search.get('lr').split('|')/*.map(x => x.replace('lang_', ''))*/
 
-    const primaryLang = langItems[1].querySelector('a') ? langItems[1] : langItems[0]
+    const primaryLang = [...langMenuItems].find(x => x.querySelector('a'))
 
-    let langList = Cookie.remember('google_search_langs', () => {
-
-      const langKeys = primaryLang.id
-        .replace(/lr_/g, '')
-        .replace(/1/g, '')
-        .split('|')
-
-      const langTitles = primaryLang.textContent
-        .replace('Search', '')
-        .replace('pages', '')
-        .split('and')
-        .map(x => `Search ${x.trim()} pages`)
-
-      if (langKeys.length !== langTitles.length) {
-        return null
-      }
-      return langKeys
-        .map((x, i) => [x, langTitles[i]])
-        .reverse()
-    })
+    const langList = Cookie.remember('google_search_langs', () => languages)
 
     if (!langList) {
+      console.log('No languages found')
       return
     }
 
     // filter already selected language
-    const lr = new URLSearchParams(document.location.href).get('lr')
-    langList = langList.filter(ln => ln[0] !== lr)
+    const lr = new URLSearchParams(document.location.search).get('lr')
+    const unselectedLangList = langList.filter(ln => ln[0] !== lr)
 
-    for (const [code, name] of langList) {
-      const newLang = primaryLang.cloneNode(true)
-      const newLink = newLang.querySelector('a')
-      newLink.innerHTML = name
-      const url = new URL(newLink.href)
-      const qs = new URLSearchParams(url.search)
-      qs.set('lr', code)
-      url.search = qs.toString()
-      newLink.href = url.href
-      langItems[1].after(newLang)
-    }
+    unselectedLangList.forEach(l => {
+      const newLangMenuItem = primaryLang.cloneNode(true)
+      newLangMenuItem.firstChild.firstChild.attributes.href.value = `search?q=${query}&lr=${l}`
+      newLangMenuItem.firstChild.firstChild.innerText = `${l}`
+      langMenuItems[1].after(newLangMenuItem)
+    })
   }
 
   setTimeout(addNewLangFilters, 1000)
