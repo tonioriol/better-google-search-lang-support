@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name Better Google Search Language Support
 // @description:en Add language filter in Google search for each language defined in langList var.
-// @version 3.0.0
+// @version 3.0.1
 // @grant none
 // @include /^http(s)?:\/\/(www)?\.google\.\w*\/search.*$/
 // @namespace https://greasyfork.org/users/320969
